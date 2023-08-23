@@ -163,7 +163,7 @@ defmodule Web.AuthControllerTest do
           }
         )
 
-      assert redirected_to(conn) == "/#{account.id}/dashboard"
+      assert redirected_to(conn) == ~p"/#{account}/dashboard"
     end
 
     test "renews the session when credentials are valid", %{conn: conn} do
@@ -455,7 +455,7 @@ defmodule Web.AuthControllerTest do
           "secret" => "bar"
         })
 
-      assert redirected_to(conn) == "/#{account.id}/sign_in"
+      assert redirected_to(conn) == ~p"/#{account}/sign_in"
       assert flash(conn, :error) == "The sign in link is invalid or expired."
     end
 
@@ -507,7 +507,7 @@ defmodule Web.AuthControllerTest do
           "secret" => identity.provider_virtual_state.sign_in_token
         })
 
-      assert redirected_to(conn) == "/#{account.id}/dashboard"
+      assert redirected_to(conn) == ~p"/#{account}/dashboard"
     end
 
     test "redirects to the platform link when credentials are valid for account users", %{
@@ -799,7 +799,7 @@ defmodule Web.AuthControllerTest do
           "code" => "MyFakeCode"
         })
 
-      assert redirected_to(conn) == "/#{account.id}/dashboard"
+      assert redirected_to(conn) == ~p"/#{account}/dashboard"
 
       assert %{
                "live_socket_id" => "actors_sessions:" <> socket_id,
@@ -877,7 +877,7 @@ defmodule Web.AuthControllerTest do
         |> put_session(:preferred_locale, "en_US")
         |> get(~p"/#{account}/sign_out")
 
-      assert redirected_to(conn) == "/#{account.id}/sign_in"
+      assert redirected_to(conn) == ~p"/#{account}/sign_in"
       assert conn.private.plug_session == %{"preferred_locale" => "en_US"}
     end
 
@@ -896,7 +896,7 @@ defmodule Web.AuthControllerTest do
         |> put_session(:live_socket_id, live_socket_id)
         |> get(~p"/#{account}/sign_out")
 
-      assert redirected_to(conn) == "/#{account.id}/sign_in"
+      assert redirected_to(conn) == ~p"/#{account}/sign_in"
 
       assert_receive %Phoenix.Socket.Broadcast{event: "disconnect", topic: ^live_socket_id}
     end
@@ -909,7 +909,7 @@ defmodule Web.AuthControllerTest do
         |> put_session(:preferred_locale, "en_US")
         |> get(~p"/#{account}/sign_out")
 
-      assert redirected_to(conn) == "/#{account.id}/sign_in"
+      assert redirected_to(conn) == ~p"/#{account}/sign_in"
       assert conn.private.plug_session == %{"preferred_locale" => "en_US"}
     end
   end

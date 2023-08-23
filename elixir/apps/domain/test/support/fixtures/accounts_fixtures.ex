@@ -3,7 +3,8 @@ defmodule Domain.AccountsFixtures do
 
   def account_attrs(attrs \\ %{}) do
     Enum.into(attrs, %{
-      name: "acc-#{counter()}"
+      name: "acc-#{counter()}",
+      slug: "acc_#{counter()}"
     })
   end
 
