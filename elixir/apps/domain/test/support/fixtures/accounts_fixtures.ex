@@ -2,9 +2,10 @@ defmodule Domain.AccountsFixtures do
   alias Domain.Accounts
 
   def account_attrs(attrs \\ %{}) do
+    count = counter()
     Enum.into(attrs, %{
-      name: "acc-#{counter()}",
-      slug: "acc_#{counter()}"
+      name: "acc-#{count}",
+      slug: "acc_#{count}"
     })
   end
 
