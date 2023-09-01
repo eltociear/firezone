@@ -257,6 +257,12 @@ where
         tracing::info!("Saving log files to: {log_dir}");
         tracing::info!("Debug mode: {debug_mode}");
 
+        // TODO: Extract this to a logging module
+        // TODO: Check if logDir is sane (e.g. not an empty string)
+        let file_appender = tracing_appender::rolling::hourly(log_dir, "connlib.log");
+        let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
+        tracing_subscriber::fmt().with_writer(non_blocking).init();
+
         Self::connect_inner(
             &runtime,
             tx,
