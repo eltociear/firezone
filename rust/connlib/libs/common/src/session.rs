@@ -215,6 +215,8 @@ where
         portal_url: impl TryInto<Url>,
         token: String,
         device_id: String,
+        log_dir: String,
+        debug_mode: bool,
         callbacks: CB,
     ) -> Result<Self> {
         // TODO: We could use tokio::runtime::current() to get the current runtime
@@ -250,6 +252,10 @@ where
                 }
             }));
         }
+
+        tracing::info!("Starting connlib!");
+        tracing::info!("Saving log files to: {log_dir}");
+        tracing::info!("Debug mode: {debug_mode}");
 
         Self::connect_inner(
             &runtime,
@@ -317,7 +323,7 @@ where
                     // `connection.start` calls the callback only after connecting
                     tracing::debug!("Attempting connection to portal...");
                     let result = connection.start(vec![topic.clone()], || exponential_backoff.reset()).await;
-                    tracing::warn!("Disconnected from the portal");
+                    tracing::debug!("Disconnected from the portal");
                     if let Err(err) = &result {
                         tracing::warn!("Portal connection error: {err}");
                     }
@@ -326,7 +332,7 @@ where
                         let _ = callbacks.on_error(&result.err().unwrap_or(Error::PortalConnectionError(tokio_tungstenite::tungstenite::Error::ConnectionClosed)));
                         tokio::time::sleep(t).await;
                     } else {
-                        tracing::error!("Connection to the portal stopped, check your internet or the status of the portal.");
+                        tracing::error!("Connection to portal failed, giving up");
                         fatal_error!(
                             result.and(Err(Error::PortalConnectionError(tokio_tungstenite::tungstenite::Error::ConnectionClosed))),
                             runtime_stopper,

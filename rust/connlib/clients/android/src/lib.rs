@@ -8,6 +8,7 @@ use ip_network::IpNetwork;
 use jni::{
     objects::{GlobalRef, JClass, JObject, JString, JValue},
     strings::JNIString,
+    sys::{jboolean, JNI_TRUE},
     JNIEnv, JavaVM,
 };
 use std::{
@@ -291,6 +292,8 @@ fn connect(
     portal_url: JString,
     portal_token: JString,
     device_id: JString,
+    log_dir: JString,
+    debug_mode: jboolean,
     callback_handler: GlobalRef,
 ) -> Result<Session<CallbackHandler>, ConnectError> {
     let portal_url = String::from(env.get_string(&portal_url).map_err(|source| {
@@ -317,10 +320,20 @@ fn connect(
             source,
         })?
         .into();
+    let log_dir = env
+        .get_string(&log_dir)
+        .map_err(|source| ConnectError::StringInvalid {
+            name: "log_dir",
+            source,
+        })?
+        .into();
+    let debug_mode = debug_mode == JNI_TRUE;
     Session::connect(
         portal_url.as_str(),
         portal_token,
         device_id,
+        log_dir,
+        debug_mode,
         callback_handler,
     )
     .map_err(Into::into)
@@ -337,12 +350,22 @@ pub unsafe extern "system" fn Java_dev_firezone_android_tunnel_TunnelSession_con
     portal_url: JString,
     portal_token: JString,
     device_id: JString,
+    log_dir: JString,
+    debug_mode: jboolean,
     callback_handler: JObject,
 ) -> *const Session<CallbackHandler> {
     let Ok(callback_handler) = env.new_global_ref(callback_handler) else { return std::ptr::null() };
 
     if let Some(result) = catch_and_throw(&mut env, |env| {
-        connect(env, portal_url, portal_token, device_id, callback_handler)
+        connect(
+            env,
+            portal_url,
+            portal_token,
+            device_id,
+            log_dir,
+            debug_mode,
+            callback_handler,
+        )
     }) {
         match result {
             Ok(session) => return Box::into_raw(Box::new(session)),

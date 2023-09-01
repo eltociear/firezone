@@ -63,6 +63,8 @@ impl Callbacks for CallbackHandler {
 
 const URL_ENV_VAR: &str = "FZ_URL";
 const SECRET_ENV_VAR: &str = "FZ_SECRET";
+const LOG_DIR_ENV_VAR: &str = "FZ_LOG_DIR";
+const DEBUG_MODE_ENV_VAR: &str = "FZ_DEBUG_MODE";
 
 fn block_on_ctrl_c() {
     let (tx, rx) = std::sync::mpsc::channel();
@@ -83,7 +85,11 @@ fn main() -> Result<()> {
     let url = parse_env_var::<Url>(URL_ENV_VAR)?;
     let secret = parse_env_var::<String>(SECRET_ENV_VAR)?;
     let device_id = get_device_id();
-    let mut session = Session::connect(url, secret, device_id, CallbackHandler).unwrap();
+    let log_dir = parse_env_var::<String>(LOG_DIR_ENV_VAR).unwrap_or_else(|_| "/tmp".to_string());
+    let debug_mode = parse_env_var::<bool>(DEBUG_MODE_ENV_VAR).unwrap_or(false);
+
+    let mut session =
+        Session::connect(url, secret, device_id, log_dir, debug_mode, CallbackHandler).unwrap();
     tracing::info!("Started new session");
 
     block_on_ctrl_c();

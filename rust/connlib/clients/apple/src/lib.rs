@@ -20,6 +20,8 @@ mod ffi {
             portal_url: String,
             token: String,
             device_id: String,
+            log_dir: String,
+            debug_mode: bool,
             callback_handler: CallbackHandler,
         ) -> Result<WrappedSession, String>;
 
@@ -155,6 +157,8 @@ impl WrappedSession {
         portal_url: String,
         token: String,
         device_id: String,
+        log_dir: String,
+        debug_mode: bool,
         callback_handler: ffi::CallbackHandler,
     ) -> Result<Self, String> {
         init_logging();
@@ -162,6 +166,8 @@ impl WrappedSession {
             portal_url.as_str(),
             token,
             device_id,
+            log_dir,
+            debug_mode,
             CallbackHandler(callback_handler.into()),
         )
         .map(|session| Self { session })
