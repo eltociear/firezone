@@ -22,6 +22,8 @@ use crate::{
 };
 
 pub const DNS_SENTINEL: Ipv4Addr = Ipv4Addr::new(100, 100, 111, 1);
+
+// Avoids having map types for Windows
 type RawFd = i32;
 
 struct StopRuntime;
@@ -215,8 +217,6 @@ where
         portal_url: impl TryInto<Url>,
         token: String,
         device_id: String,
-        log_dir: String,
-        debug_mode: bool,
         callbacks: CB,
     ) -> Result<Self> {
         // TODO: We could use tokio::runtime::current() to get the current runtime
@@ -252,16 +252,6 @@ where
                 }
             }));
         }
-
-        tracing::info!("Starting connlib!");
-        tracing::info!("Saving log files to: {log_dir}");
-        tracing::info!("Debug mode: {debug_mode}");
-
-        // TODO: Extract this to a logging module
-        // TODO: Check if logDir is sane (e.g. not an empty string)
-        let file_appender = tracing_appender::rolling::hourly(log_dir, "connlib.log");
-        let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
-        tracing_subscriber::fmt().with_writer(non_blocking).init();
 
         Self::connect_inner(
             &runtime,

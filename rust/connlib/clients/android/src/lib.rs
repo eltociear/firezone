@@ -3,7 +3,9 @@
 // However, this consideration has made it idiomatic for Java FFI in the Rust
 // ecosystem, so it's used here for consistency.
 
-use firezone_client_connlib::{Callbacks, Error, ResourceDescription, Session};
+use firezone_client_connlib::{
+    file_logger::FileLogger, Callbacks, Error, ResourceDescription, Session,
+};
 use ip_network::IpNetwork;
 use jni::{
     objects::{GlobalRef, JClass, JObject, JString, JValue},
@@ -17,21 +19,6 @@ use std::{
 };
 use thiserror::Error;
 use tracing::log::LevelFilter;
-
-/// This should be called once after the library is loaded by the system.
-#[allow(non_snake_case)]
-#[no_mangle]
-pub extern "system" fn Java_dev_firezone_android_tunnel_TunnelLogger_init(_: JNIEnv, _: JClass) {
-    android_logger::init_once(
-        android_logger::Config::default()
-            .with_max_level(if cfg!(debug_assertions) {
-                LevelFilter::Debug
-            } else {
-                LevelFilter::Warn
-            })
-            .with_tag("connlib"),
-    )
-}
 
 pub struct CallbackHandler {
     vm: JavaVM,
@@ -89,6 +76,25 @@ fn call_method(
     env.call_method(this, name, sig, args)
         .map(|val| tracing::trace!("`{name}` returned `{val:?}`"))
         .map_err(|source| CallbackError::CallMethodFailed { name, source })
+}
+
+fn init_logging(log_dir: String, debug_mode: bool) {
+    // This can be called many times, but will only initialize logging once
+    android_logger::init_once(
+        android_logger::Config::default()
+            .with_max_level(if debug_mode {
+                LevelFilter::Debug
+            } else {
+                LevelFilter::Warn
+            })
+            .with_tag("connlib"),
+    );
+
+    let file_logger = FileLogger::init(log_dir.to_string());
+
+    tracing_subscriber::fmt()
+        .with_writer(file_logger.writer)
+        .init();
 }
 
 impl Callbacks for CallbackHandler {
@@ -309,10 +315,6 @@ fn connect(
             source,
         })?
         .into();
-    let callback_handler = CallbackHandler {
-        vm: env.get_java_vm().map_err(ConnectError::GetJavaVmFailed)?,
-        callback_handler,
-    };
     let device_id = env
         .get_string(&device_id)
         .map_err(|source| ConnectError::StringInvalid {
@@ -327,13 +329,17 @@ fn connect(
             source,
         })?
         .into();
-    let debug_mode = debug_mode == JNI_TRUE;
+    let callback_handler = CallbackHandler {
+        vm: env.get_java_vm().map_err(ConnectError::GetJavaVmFailed)?,
+        callback_handler,
+    };
+
+    init_logging(log_dir, debug_mode == JNI_TRUE);
+
     Session::connect(
         portal_url.as_str(),
         portal_token,
         device_id,
-        log_dir,
-        debug_mode,
         callback_handler,
     )
     .map_err(Into::into)
@@ -354,7 +360,9 @@ pub unsafe extern "system" fn Java_dev_firezone_android_tunnel_TunnelSession_con
     debug_mode: jboolean,
     callback_handler: JObject,
 ) -> *const Session<CallbackHandler> {
-    let Ok(callback_handler) = env.new_global_ref(callback_handler) else { return std::ptr::null() };
+    let Ok(callback_handler) = env.new_global_ref(callback_handler) else {
+        return std::ptr::null();
+    };
 
     if let Some(result) = catch_and_throw(&mut env, |env| {
         connect(
