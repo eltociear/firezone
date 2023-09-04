@@ -158,7 +158,7 @@ internal class TunnelManager @Inject constructor(
                     controlPlaneUrl = BuildConfig.CONTROL_PLANE_URL,
                     token = config.token,
                     deviceId = deviceId(),
-                    logDir = appContext.filesDir.absolutePath,
+                    logDir = appContext.cacheDir.absolutePath,
                     debugMode = debugMode,
                     callback = callback
                 )
